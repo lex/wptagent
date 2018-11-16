@@ -8,6 +8,7 @@ import platform
 import re
 import subprocess
 import time
+import requests
 
 class TrafficShaper(object):
     """Main traffic-shaper interface"""
@@ -34,6 +35,13 @@ class TrafficShaper(object):
                 if len(parts) == 4:
                     self.shaper = RemoteDummynet(parts[1].strip(), parts[2].strip(),
                                                  parts[3].strip())
+            elif shaper_name[:6] == 'custom':
+                parts = shaper_name.split(',')
+                host = parts[1].strip()
+                device_name = parts[2].strip()
+                if len(parts) == 3:
+                    self.shaper = Custom(host, device_name)
+
         elif options.rndis:
             self.shaper = NoShaper()
         else:
@@ -293,7 +301,6 @@ class MacDummynet(Dummynet):
                self.dnctl(['pipe', self.in_pipe, 'config', 'delay', '0ms', 'noerror']) and\
                self.dnctl(['pipe', self.out_pipe, 'config', 'delay', '0ms', 'noerror']) and\
                self.pfctl(['-f', rules_file])
-               
 
     def remove(self):
         """clear the config"""
@@ -466,3 +473,43 @@ class NetEm(object):
         logging.debug(' '.join(args))
         ret = subprocess.call(args) == 0
         return ret
+
+class Custom(object):
+    """Custom shaper"""
+    def __init__(self, host, device_name):
+        self.interface = None
+        self.host = host
+        self.device_name = device_name
+
+    def ipfw(self, args):
+        return True
+
+    def install(self):
+        return True
+
+    def remove(self):
+        json = {'name': '{}'.format(self.device_name)}
+        r = requests.post('{}/delete'.format(self.host), json=json)
+        return True
+
+    def reset(self):
+        json = {'name': '{}'.format(self.device_name)}
+        r = requests.post('{}/delete'.format(self.host), json=json)
+        return True
+
+    def configure(self, in_bps, out_bps, rtt, plr):
+        in_kbps = int(in_bps / 1000)
+        in_latency = rtt / 2
+
+        if rtt % 2:
+            in_latency += 1
+
+        out_kbps = int(out_bps / 1000)
+        out_latency = rtt / 2
+
+        plr = plr / 100.0
+
+        json = {'name': '{}'.format(self.device_name), 'download': '{}'.format(in_kbps), 'upload': '{}'.format(out_kbps), 'in_latency': '{}'.format(in_latency), 'out_latency': '{}'.format(out_latency), 'plr': '{}'.format(plr)}
+        r = requests.post('{}/add'.format(self.host), json=json)
+
+        return True
