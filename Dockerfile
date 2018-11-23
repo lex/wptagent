@@ -23,7 +23,10 @@ RUN apt-get update && \
     bind9utils \
     libnss3-tools \
     iproute2 \
-    software-properties-common && \
+    software-properties-common \
+    android-tools-adb \
+    android-tools-fastboot \
+    libssl1.0.0 && \
 # Node setup
   curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash - && \
   wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
