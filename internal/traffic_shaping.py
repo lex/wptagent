@@ -38,9 +38,9 @@ class TrafficShaper(object):
             elif shaper_name[:6] == 'custom':
                 parts = shaper_name.split(',')
                 host = parts[1].strip()
-                device_name = parts[2].strip()
+                device_id = parts[2].strip()
                 if len(parts) == 3:
-                    self.shaper = Custom(host, device_name)
+                    self.shaper = Custom(host, device_id)
 
         elif options.rndis:
             self.shaper = NoShaper()
@@ -476,10 +476,10 @@ class NetEm(object):
 
 class Custom(object):
     """Custom shaper"""
-    def __init__(self, host, device_name):
+    def __init__(self, host, device_id):
         self.interface = None
         self.host = host
-        self.device_name = device_name
+        self.device_id = device_id
 
     def ipfw(self, args):
         return True
@@ -488,12 +488,12 @@ class Custom(object):
         return True
 
     def remove(self):
-        json = {'name': '{}'.format(self.device_name)}
+        json = {'device_id': '{}'.format(self.device_id)}
         r = requests.post('{}/delete'.format(self.host), json=json)
         return True
 
     def reset(self):
-        json = {'name': '{}'.format(self.device_name)}
+        json = {'device_id': '{}'.format(self.device_id)}
         r = requests.post('{}/delete'.format(self.host), json=json)
         return True
 
@@ -509,7 +509,7 @@ class Custom(object):
 
         plr = plr / 100.0
 
-        json = {'name': '{}'.format(self.device_name), 'download': '{}'.format(in_kbps), 'upload': '{}'.format(out_kbps), 'in_latency': '{}'.format(in_latency), 'out_latency': '{}'.format(out_latency), 'plr': '{}'.format(plr)}
+        json = {'device_id': '{}'.format(self.device_id), 'download': '{}'.format(in_kbps), 'upload': '{}'.format(out_kbps), 'in_latency': '{}'.format(in_latency), 'out_latency': '{}'.format(out_latency), 'plr': '{}'.format(plr)}
         r = requests.post('{}/add'.format(self.host), json=json)
 
         return True
