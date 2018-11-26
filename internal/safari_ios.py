@@ -117,9 +117,27 @@ class iWptBrowser(BaseBrowser):
         self.flush_messages()
         self.ios_version = self.ios.get_os_version()
         if self.ios_utils_path and self.ios.start_browser():
+            # Find a free port for webkit proxy
+            self.webkit_proxy_port = 9222
+            netstat = os.popen('netstat -lptu').readlines()
+            logging.debug(netstat)
+
+            used_ports = []
+
+            for line in list(filter(lambda x: '92' in x.strip(), netstat)):
+                used_ports.append(int(line.split()[3].split(':')[1]))
+
+            used_ports = sorted(used_ports)
+
+            if used_ports:
+                logging.debug('Ports in use: {}'.format(used_ports))
+                self.webkit_proxy_port = used_ports[-1] + 1
+
+            logging.debug('Using port {} for webkit_proxy'.format(self.webkit_proxy_port))
+
             # Start the webinspector proxy
             exe = os.path.join(self.ios_utils_path, 'ios_webkit_debug_proxy')
-            args = [exe, '-F', '-u', '{}:9222-9322'.format(self.ios.serial),]
+            args = [exe, '-F', '-u', '{}:{}'.format(self.ios.serial, self.webkit_proxy_port),]
             logging.debug(' '.join(args))
             self.webinspector_proxy = subprocess.Popen(args)
             if self.webinspector_proxy:
@@ -135,7 +153,7 @@ class iWptBrowser(BaseBrowser):
         end_time = monotonic.monotonic() + timeout
         while not ret and monotonic.monotonic() < end_time:
             try:
-                response = requests.get("http://localhost:9222/json", timeout=timeout, proxies=proxies)
+                response = requests.get("http://localhost:{}/json".format(self.webkit_proxy_port), timeout=timeout, proxies=proxies)
                 if response.text:
                     tabs = response.json()
                     logging.debug("Dev Tools tabs: %s", json.dumps(tabs))
