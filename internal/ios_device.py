@@ -213,7 +213,7 @@ class iOSDevice(object):
         if needs_restart:
             self.last_restart = monotonic.monotonic()
             try:
-                subprocess.call(['idevicediagnostics', 'restart'])
+                subprocess.call('idevicediagnostics -u {} restart'.format(self.serial).split(' '))
             except Exception:
                 pass
         return self.socket is not None
@@ -222,7 +222,6 @@ class iOSDevice(object):
         """Disconnect from the device"""
         self.must_disconnect = True
         if self.socket is not None:
-            self.socket.close()
             self.socket = None
         if self.message_thread is not None:
             # self.message_thread.join()
