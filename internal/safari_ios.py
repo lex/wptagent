@@ -119,7 +119,7 @@ class iWptBrowser(BaseBrowser):
         if self.ios_utils_path and self.ios.start_browser():
             # Start the webinspector proxy
             exe = os.path.join(self.ios_utils_path, 'ios_webkit_debug_proxy')
-            args = [exe, '-F', '-u', self.ios.serial]
+            args = [exe, '-F', '-u', '{}:9222-9322'.format(self.ios.serial),]
             logging.debug(' '.join(args))
             self.webinspector_proxy = subprocess.Popen(args)
             if self.webinspector_proxy:
