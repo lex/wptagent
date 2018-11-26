@@ -389,8 +389,14 @@ def install_main():
         # Update the library cache
         subprocess.call(['ldconfig'])
         # Start and initialize usbmuxd
+
         print "Starting usbmuxd"
         subprocess.call(['/usr/local/sbin/usbmuxd'])
+
+        print "Using usbmuxd socket from host"
+        subprocess.call('rm /var/run/usbmuxd'.split(' '))
+        subprocess.call('ln -s /var/hostrun/usbmuxd /var/run/usbmuxd'.split(' '))
+
         subprocess.call(['/usr/local/bin/ideviceinfo'])
 
 
