@@ -117,21 +117,11 @@ class iWptBrowser(BaseBrowser):
         self.flush_messages()
         self.ios_version = self.ios.get_os_version()
         if self.ios_utils_path and self.ios.start_browser():
-            # Find a free port for webkit proxy
             self.webkit_proxy_port = 9222
-            netstat = os.popen('netstat -lptu').readlines()
-            logging.debug(netstat)
 
-            used_ports = []
-
-            for line in list(filter(lambda x: '92' in x.strip(), netstat)):
-                used_ports.append(int(line.split()[3].split(':')[1]))
-
-            used_ports = sorted(used_ports)
-
-            if used_ports:
-                logging.debug('Ports in use: {}'.format(used_ports))
-                self.webkit_proxy_port = used_ports[-1] + 1
+            # Use a predefined proxy port if given
+            if self.options.webkitport:
+                self.webkit_proxy_port = self.options.webkitport
 
             logging.debug('Using port {} for webkit_proxy'.format(self.webkit_proxy_port))
 

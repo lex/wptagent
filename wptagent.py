@@ -791,6 +791,8 @@ def main():
                         "(specify serial number in --device).")
     parser.add_argument('--list', action='store_true', default=False,
                         help="List available iOS devices.")
+    parser.add_argument('--webkitport',
+                        help="Webkit proxy port (only needed if more than one iOS device attached).")
 
     # Options for authenticating the agent with the server
     parser.add_argument('--username',
