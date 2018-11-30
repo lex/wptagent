@@ -25,8 +25,8 @@ SET_ORANGE = "(function() {" \
              "wptDiv.style.position = 'absolute';" \
              "wptDiv.style.top = '0';" \
              "wptDiv.style.left = '0';" \
-             "wptDiv.style.width = document.body.clientWidth + 'px';" \
-             "wptDiv.style.height = document.body.clientHeight + 'px';" \
+             "wptDiv.style.width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0) + 'px';" \
+             "wptDiv.style.height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0) + 'px';" \
              "wptDiv.style.zIndex = '2147483647';" \
              "wptDiv.style.backgroundColor = '#DE640D';" \
              "document.body.appendChild(wptDiv);" \
@@ -274,13 +274,11 @@ class DesktopBrowser(BaseBrowser):
         else:
             self.proc = subprocess.Popen(command_line, preexec_fn=os.setsid, shell=True)
 
-    def stop(self, job, _task):
-        """Terminate the browser (gently at first but forced if needed)"""
-        self.stopping = True
-        self.recording = False
-        from .os_util import kill_all
-        logging.debug("Stopping browser")
+    def close_browser(self, job, _task):
+        """Terminate the browser but don't do all of the cleanup that stop does"""
         if self.proc:
+            logging.debug("Closing browser")
+            from .os_util import kill_all
             kill_all(os.path.basename(self.path), False)
             if 'browser_info' in job and 'other_exes' in job['browser_info']:
                 for exe in job['browser_info']['other_exes']:
@@ -293,6 +291,13 @@ class DesktopBrowser(BaseBrowser):
             except Exception:
                 pass
             self.proc = None
+
+    def stop(self, job, task):
+        """Terminate the browser (gently at first but forced if needed)"""
+        self.stopping = True
+        self.recording = False
+        logging.debug("Stopping browser")
+        self.close_browser(job, task)
         self.disable_cpu_throttling()
         self.restore_hosts()
         # Clean up the downloads folder in case anything was downloaded

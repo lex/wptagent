@@ -40,6 +40,9 @@ class Firefox(DesktopBrowser):
         self.browser_version = None
         self.main_request_headers = None
         self.log_pos = {}
+        self.log_level = 5
+        if 'browser_info' in job and 'log_level' in job['browser_info']:
+            self.log_level = job['browser_info']['log_level']
         self.page = {}
         self.requests = {}
         self.last_activity = monotonic.monotonic()
@@ -54,8 +57,10 @@ class Firefox(DesktopBrowser):
         self.requests = {}
         self.main_request_headers = None
         os.environ["MOZ_LOG_FILE"] = self.moz_log
-        os.environ["MOZ_LOG"] = 'timestamp,sync,nsHttp:5,nsSocketTransport:5'\
-                                'nsHostResolver:5,pipnss:5'
+        moz_log_env = 'timestamp,nsHttp:{0:d},nsSocketTransport:{0:d}'\
+                      'nsHostResolver:{0:d},pipnss:5'.format(self.log_level)
+        os.environ["MOZ_LOG"] = moz_log_env
+        logging.debug('MOZ_LOG = %s', moz_log_env)
         DesktopBrowser.prepare(self, job, task)
         profile_template = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                         'support', 'Firefox', 'profile')
@@ -97,6 +102,18 @@ class Firefox(DesktopBrowser):
                     config[name] = task[name]
             self.job['message_server'].config = config
 
+    def disable_fsync(self, command_line):
+        """Use eatmydata if it is installed to disable fsync"""
+        if platform.system() == 'Linux':
+            try:
+                cmd = ['eatmydata', 'date']
+                logging.debug(' '.join(cmd))
+                subprocess.check_call(cmd)
+                command_line = 'eatmydata ' + command_line
+            except Exception as err:
+                pass
+        return command_line
+
     def launch(self, job, task):
         """Launch the browser"""
         if self.job['message_server'] is not None:
@@ -113,10 +130,14 @@ class Firefox(DesktopBrowser):
         else:
             command_line = self.path
         command_line += ' ' + ' '.join(args)
+        command_line = self.disable_fsync(command_line)
         DesktopBrowser.launch_browser(self, command_line)
         try:
             self.marionette = Marionette('localhost', port=2828)
-            self.marionette.start_session(timeout=self.task['time_limit'])
+            capabilities = None
+            if 'ignoreSSL' in job and job['ignoreSSL']:
+                capabilities = {'acceptInsecureCerts': True}
+            self.marionette.start_session(timeout=self.task['time_limit'], capabilities=capabilities)
             self.configure_prefs()
             logging.debug('Installing extension')
             self.addons = Addons(self.marionette)
@@ -209,8 +230,8 @@ class Firefox(DesktopBrowser):
             except Exception:
                 pass
 
-    def stop(self, job, task):
-        """Kill the browser"""
+    def close_browser(self, job, task):
+        """Terminate the browser but don't do all of the cleanup that stop does"""
         if self.extension_id is not None and self.addons is not None:
             try:
                 self.addons.uninstall(self.extension_id)
@@ -224,13 +245,18 @@ class Firefox(DesktopBrowser):
             except Exception:
                 pass
             self.marionette = None
-        DesktopBrowser.stop(self, job, task)
+        DesktopBrowser.close_browser(self, job, task)
         # make SURE the Firefox processes are gone
         if platform.system() == "Linux":
             subprocess.call(['killall', '-9', 'firefox'])
             subprocess.call(['killall', '-9', 'firefox-trunk'])
         os.environ["MOZ_LOG_FILE"] = ''
         os.environ["MOZ_LOG"] = ''
+
+    def stop(self, job, task):
+        """Kill the browser"""
+        self.close_browser(job, task)
+        DesktopBrowser.stop(self, job, task)
         # delete the raw log files
         if self.moz_log is not None:
             files = sorted(glob.glob(self.moz_log + '*'))
@@ -604,6 +630,9 @@ class Firefox(DesktopBrowser):
             interactive_file = os.path.join(task['dir'], task['prefix'] + '_interactive.json.gz')
             with gzip.open(interactive_file, 'wb', 7) as f_out:
                 f_out.write(interactive)
+        # Close the browser if we are done testing (helps flush logs)
+        if not len(task['script']):
+            self.close_browser(self.job, task)
         # Copy the log files
         if self.moz_log is not None:
             task['moz_log'] = os.path.join(task['dir'], task['prefix'] + '_moz.log')
