@@ -579,6 +579,8 @@ class iWptBrowser(BaseBrowser):
                         self.nav_error = msg['params']['errorText']
                         self.nav_error_code = 12999
                         logging.debug('Navigation error: %s', self.nav_error)
+                        if self.nav_error == 'The Internet connection appears to be offline.':
+                            self.ios.reboot()
             elif event == 'requestServedFromMemoryCache':
                 request['fromNet'] = False
             else:

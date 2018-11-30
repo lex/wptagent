@@ -218,6 +218,14 @@ class iOSDevice(object):
                 pass
         return self.socket is not None
 
+    def reboot(self):
+        """Reboot the device with the matching serial number"""
+        try:
+            logging.debug("Rebooting device %s", self.serial)
+            subprocess.call('idevicediagnostics -u {} restart'.format(self.serial).split(' '))
+        except Exception:
+            pass
+
     def disconnect(self):
         """Disconnect from the device"""
         self.must_disconnect = True
