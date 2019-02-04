@@ -509,7 +509,7 @@ class Custom(object):
 
         plr = plr / 100.0
 
-        json = {'device_id': '{}'.format(self.device_id), 'download': '{}'.format(in_kbps), 'upload': '{}'.format(out_kbps), 'in_latency': '{}'.format(in_latency), 'out_latency': '{}'.format(out_latency), 'plr': '{}'.format(plr)}
-        r = requests.post('{}/add'.format(self.host), json=json)
+        json = {'device_id': '{}'.format(self.device_id), 'download': '{}'.format(in_kbps), 'upload': '{}'.format(out_kbps), 'latency_in': '{}'.format(in_latency), 'latency_out': '{}'.format(out_latency), 'plr': '{}'.format(plr)}
+        r = requests.post('{}/traffic-shaping'.format(self.host), json=json)
 
         return True
