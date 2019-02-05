@@ -489,12 +489,12 @@ class Custom(object):
 
     def remove(self):
         json = {'device_id': '{}'.format(self.device_id)}
-        r = requests.post('{}/delete'.format(self.host), json=json)
+        r = requests.post('{}/traffic-shaping/disable'.format(self.host), json=json)
         return True
 
     def reset(self):
         json = {'device_id': '{}'.format(self.device_id)}
-        r = requests.post('{}/delete'.format(self.host), json=json)
+        r = requests.post('{}/traffic-shaping/disable'.format(self.host), json=json)
         return True
 
     def configure(self, in_bps, out_bps, rtt, plr):
@@ -510,6 +510,6 @@ class Custom(object):
         plr = plr / 100.0
 
         json = {'device_id': '{}'.format(self.device_id), 'download': '{}'.format(in_kbps), 'upload': '{}'.format(out_kbps), 'latency_in': '{}'.format(in_latency), 'latency_out': '{}'.format(out_latency), 'plr': '{}'.format(plr)}
-        r = requests.post('{}/traffic-shaping'.format(self.host), json=json)
+        r = requests.post('{}/traffic-shaping/enable'.format(self.host), json=json)
 
         return True
